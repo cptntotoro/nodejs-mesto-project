@@ -1,30 +1,30 @@
-import { Request, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import { Error } from 'mongoose';
 import { RequestWithUser } from '../types';
 import Card from '../models/card';
-import {
-  handleNotFoundError, handleValidationError, handleServerError, handleForbiddenError,
-} from '../util/errorHandlers';
-import HTTP_STATUS from '../util/constants';
+import { HTTP_STATUS } from '../util/constants';
+import BadRequestError from '../errors/BadRequestError';
+import NotFoundError from '../errors/NotFoundError';
+import ForbiddenError from '../errors/ForbiddenError';
 
 const { ValidationError, CastError } = Error;
 
 /**
  * Получить все карточки
  */
-export const getAllCards = async (req: Request, res: Response) => {
+export const getAllCards = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const cards = await Card.find({}).populate('owner likes');
     res.send({ data: cards });
   } catch (err) {
-    handleServerError(res);
+    next(err);
   }
 };
 
 /**
  * Создать карточку
  */
-export const createCard = async (req: Request, res: Response) => {
+export const createCard = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { name, link } = req.body;
     const owner = (req as RequestWithUser).user?._id;
@@ -32,9 +32,9 @@ export const createCard = async (req: Request, res: Response) => {
     res.status(HTTP_STATUS.CREATED).send({ data: card });
   } catch (err) {
     if (err instanceof ValidationError) {
-      handleValidationError(res);
+      next(new BadRequestError('Ошибка валидации данных'));
     } else {
-      handleServerError(res);
+      next(err);
     }
   }
 };
@@ -42,33 +42,33 @@ export const createCard = async (req: Request, res: Response) => {
 /**
  * Удалить карточку по идентификатору
  */
-export const deleteCardById = async (req: Request, res: Response) => {
+export const deleteCardById = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { cardId } = req.params;
     const userId = (req as RequestWithUser).user?._id;
     const card = await Card.findById(cardId);
     if (!card) {
-      return handleNotFoundError(res, 'Карточка не найдена');
+      throw new NotFoundError('Карточка не найдена');
     }
 
     if (card.owner.toString() !== userId) {
-      return handleForbiddenError(res);
+      throw new ForbiddenError('Нет прав для удаления карточки');
     }
 
     const deletedCard = await Card.findByIdAndDelete(cardId);
     return res.send({ data: deletedCard });
   } catch (err) {
     if (err instanceof CastError) {
-      return handleValidationError(res);
+      return next(new BadRequestError('Некорректный идентификатор карточки'));
     }
-    return handleServerError(res);
+    return next(err);
   }
 };
 
 /**
  * Поставить лайк карточке
  */
-export const setLikeToCard = async (req: Request, res: Response) => {
+export const setLikeToCard = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { cardId } = req.params;
     const userId = (req as RequestWithUser).user?._id;
@@ -79,22 +79,22 @@ export const setLikeToCard = async (req: Request, res: Response) => {
     ).populate('owner likes');
 
     if (!card) {
-      return handleNotFoundError(res, 'Карточка не найдена');
+      throw new NotFoundError('Карточка не найдена');
     }
 
     return res.send({ data: card });
   } catch (err) {
     if (err instanceof CastError) {
-      return handleValidationError(res);
+      return next(new BadRequestError('Некорректный идентификатор карточки'));
     }
-    return handleServerError(res);
+    return next(err);
   }
 };
 
 /**
  * Убрать лайк с карточки
  */
-export const removeLikeFromCard = async (req: Request, res: Response) => {
+export const removeLikeFromCard = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { cardId } = req.params;
     const userId = (req as RequestWithUser).user?._id;
@@ -105,14 +105,14 @@ export const removeLikeFromCard = async (req: Request, res: Response) => {
     ).populate('owner likes');
 
     if (!card) {
-      return handleNotFoundError(res, 'Карточка не найдена');
+      throw new NotFoundError('Карточка не найдена');
     }
 
     return res.send({ data: card });
   } catch (err) {
     if (err instanceof CastError) {
-      return handleValidationError(res);
+      return next(new BadRequestError('Некорректный идентификатор карточки'));
     }
-    return handleServerError(res);
+    return next(err);
   }
 };

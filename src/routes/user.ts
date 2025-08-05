@@ -1,14 +1,42 @@
 import { Router } from 'express';
+import { body } from 'express-validator';
 import {
-  createUser, getUserById, getAllUsers, updateUserProfile, updateUserAvatar,
+  getUserById, getAllUsers, updateUserProfile, updateUserAvatar, getCurrentUser,
 } from '../controllers/user';
+import { validateRequest } from '../middlewares/validation';
+import { URL_REGEX } from '../util/constants';
 
 const router = Router();
 
+router.get('/me', getCurrentUser);
 router.get('/:userId', getUserById);
-router.post('/', createUser);
 router.get('/', getAllUsers);
-router.patch('/me', updateUserProfile);
-router.patch('/me/avatar', updateUserAvatar);
+router.patch(
+  '/me',
+  [
+    body('name')
+      .optional()
+      .isLength({ min: 2, max: 30 })
+      .withMessage('Имя должно быть от 2 до 30 символов'),
+    body('about')
+      .optional()
+      .isLength({ min: 2, max: 200 })
+      .withMessage('Информация о себе должна быть от 2 до 200 символов'),
+    validateRequest,
+  ],
+  updateUserProfile,
+);
+router.patch(
+  '/me/avatar',
+  [
+    body('avatar')
+      .isURL()
+      .withMessage('Некорректный URL аватара')
+      .matches(URL_REGEX)
+      .withMessage('Некорректный формат URL аватара'),
+    validateRequest,
+  ],
+  updateUserAvatar,
+);
 
 export default router;

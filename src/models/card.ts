@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import validator from 'validator';
+import { validateUrl } from '../middlewares/validation';
 
 interface ICard {
   name: string;
@@ -21,8 +21,8 @@ const cardSchema = new mongoose.Schema<ICard>(
       type: String,
       required: true,
       validate: {
-        validator: (v: string) => validator.isURL(v),
-        message: 'Некорректный URL',
+        validator: (v: string) => validateUrl(v),
+        message: 'Некорректный URL изображения',
       },
     },
     owner: {
