@@ -12,8 +12,10 @@ const { ValidationError, CastError } = Error;
  */
 export const createUser = async (req : Request, res : Response) => {
   try {
-    const { name, about, avatar } = req.body;
-    const user = await User.create({ name, about, avatar });
+    const {
+      email, password, name, about, avatar,
+    } = req.body;
+    const user = await User.create({ email, password, name, about, avatar });
     res.status(HTTP_STATUS.CREATED).send({ data: user });
   } catch (err) {
     if (err instanceof ValidationError) {
@@ -106,3 +108,23 @@ export const updateUserAvatar = async (req: Request, res: Response) => {
     return handleServerError(res);
   }
 };
+
+/**
+ * Логин пользователя
+ */
+export const loginUser  = async (req: Request, res: Response) => {
+  try {
+    const { email, password } = req.body;
+    const userId = (req as RequestWithUser).user?._id;
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { email, password },
+      { new: true, runValidators: true },
+    );
+  } catch (err) {
+    if (err instanceof ValidationError || err instanceof CastError) {
+      return handleValidationError(res, 'Некорректные данные пользователя');
+    }
+    return handleServerError(res);
+  }
+}

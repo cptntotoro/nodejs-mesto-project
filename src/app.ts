@@ -5,6 +5,7 @@ import usersRouter from './routes/user';
 import { RequestWithUser } from './types';
 import 'dotenv/config';
 import { handleNotFoundError } from './util/errorHandlers';
+import { createUser, loginUser } from './controllers/user';
 
 const { PORT = 3000, MONGO_URL = 'mongodb://localhost:27017/mestodb' } = process.env;
 
@@ -22,6 +23,8 @@ mongoose.connect(MONGO_URL);
 app.use(express.json());
 app.use('/cards', cardsRouter);
 app.use('/users', usersRouter);
+app.post('/signin', loginUser);
+app.post('/signup', createUser);
 
 // Обработка несуществующих роутов
 app.use('*', (req: Request, res: Response) => {
