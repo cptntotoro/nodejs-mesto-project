@@ -13,6 +13,18 @@ export const handleForbiddenError = (res: Response) => {
   res.status(HTTP_STATUS.FORBIDDEN).send({ message: 'Недостаточно прав для совершения действия' });
 };
 
+export const handleUnauthorizedError = (res: Response) => {
+  res.status(HTTP_STATUS.UNAUTHORIZED).send({ message: 'Необходима авторизация для совершения действия' });
+};
+
+export const handleWrongCredentials = (res: Response) => {
+  res.status(HTTP_STATUS.UNAUTHORIZED).send({ message: 'Неверный логин и/или пароль' });
+};
+
 export const handleServerError = (res: Response) => {
   res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).send({ message: 'Ошибка сервера' });
+};
+
+export const handleConflictError = (res: Response) => {
+  res.status(HTTP_STATUS.CONFLICT).send({ message: 'Конфикт при обращении к ресурсу' });
 };

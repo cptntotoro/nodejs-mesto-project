@@ -2,29 +2,9 @@ import { Request, Response } from 'express';
 import { Error } from 'mongoose';
 import User from '../models/user';
 import { handleNotFoundError, handleServerError, handleValidationError } from '../util/errorHandlers';
-import HTTP_STATUS from '../util/constants';
 import { RequestWithUser } from '../types';
 
 const { ValidationError, CastError } = Error;
-
-/**
- * Создать пользователя
- */
-export const createUser = async (req : Request, res : Response) => {
-  try {
-    const {
-      email, password, name, about, avatar,
-    } = req.body;
-    const user = await User.create({ email, password, name, about, avatar });
-    res.status(HTTP_STATUS.CREATED).send({ data: user });
-  } catch (err) {
-    if (err instanceof ValidationError) {
-      handleValidationError(res);
-    } else {
-      handleServerError(res);
-    }
-  }
-};
 
 /**
  * Получить пользователя по идентификатору
@@ -110,21 +90,19 @@ export const updateUserAvatar = async (req: Request, res: Response) => {
 };
 
 /**
- * Логин пользователя
+ * Получить информацию о текущем пользователе
  */
-export const loginUser  = async (req: Request, res: Response) => {
+export const getCurrentUser = async (req: Request & { user?: { _id: string } }, res: Response) => {
   try {
-    const { email, password } = req.body;
-    const userId = (req as RequestWithUser).user?._id;
-    const user = await User.findByIdAndUpdate(
-      userId,
-      { email, password },
-      { new: true, runValidators: true },
-    );
+    const user = await User.findById(req.user?._id);
+    if (!user) {
+      return handleNotFoundError(res, 'Пользователь не найден');
+    }
+    return res.send({ data: user });
   } catch (err) {
-    if (err instanceof ValidationError || err instanceof CastError) {
-      return handleValidationError(res, 'Некорректные данные пользователя');
+    if (err instanceof CastError) {
+      return handleValidationError(res, 'Некорректный идентификатор пользователя');
     }
     return handleServerError(res);
   }
-}
+};

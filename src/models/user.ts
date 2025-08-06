@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import validator from 'validator';
+import bcrypt from 'bcryptjs';
 
 interface IUser {
   email: string;
@@ -9,7 +10,14 @@ interface IUser {
   avatar: string;
 }
 
-const userSchema = new mongoose.Schema<IUser>(
+interface IUserModel extends mongoose.Model<IUser> {
+  findUserByCredentials(
+    _email: string,
+    _password: string
+  ): Promise<mongoose.HydratedDocument<IUser>>;
+}
+
+const userSchema = new mongoose.Schema<IUser, IUserModel>(
   {
     email: {
       type: String,
@@ -23,6 +31,7 @@ const userSchema = new mongoose.Schema<IUser>(
     password: {
       type: String,
       required: true,
+      select: false,
     },
     name: {
       type: String,
@@ -51,4 +60,24 @@ const userSchema = new mongoose.Schema<IUser>(
   { versionKey: false },
 );
 
-export default mongoose.model<IUser>('user', userSchema);
+userSchema.static('findUserByCredentials', function findUserByCredentials(email: string, password: string) {
+  return this.findOne({ email }).select('+password') // Add select('+password')
+    .then((user) => {
+      if (!user) {
+        return Promise.reject(new Error('Неправильные почта или пароль'));
+      }
+
+      return bcrypt.compare(password, user.password)
+        .then((matched) => {
+          if (!matched) {
+            return Promise.reject(new Error('Неправильные почта или пароль'));
+          }
+
+          return user;
+        });
+    });
+});
+
+const User = mongoose.model<IUser, IUserModel>('user', userSchema);
+
+export default User;
