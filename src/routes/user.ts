@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { body } from 'express-validator';
+import { body, param } from 'express-validator';
 import {
   getUserById, getAllUsers, updateUserProfile, updateUserAvatar, getCurrentUser,
 } from '../controllers/user';
@@ -9,7 +9,16 @@ import { URL_REGEX } from '../util/constants';
 const router = Router();
 
 router.get('/me', getCurrentUser);
-router.get('/:userId', getUserById);
+router.get(
+  '/:userId',
+  [
+    param('userId')
+      .isMongoId()
+      .withMessage('Некорректный ID пользователя'),
+    validateRequest,
+  ],
+  getUserById,
+);
 router.get('/', getAllUsers);
 router.patch(
   '/me',
